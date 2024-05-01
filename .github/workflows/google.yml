@@ -9,10 +9,10 @@ on:
   #     - master
 
 env:
-    CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
+    CLUSTER_NAME: ${{ vars.CLUSTER_NAME }}
     GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
     COMPUTE_SERVICE_ACCOUNT: ${{ secrets.COMPUTE_ENGINE_SERVICE_ACCOUNT }} #Service account to associate to the nodes in the cluster	any	n/a	yes
-    CLUSTER_REGION: ${{ secrets.REGION }}
+    CLUSTER_REGION: ${{ vars.REGION }}
 
 jobs:
   test-connection-gke:
