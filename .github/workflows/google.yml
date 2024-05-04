@@ -77,55 +77,60 @@ jobs:
 
 
     - name: "kustomize ingress controller"
-      id: 'kustomize-certs'
+      id: 'kustomize-ingress'
       run: |
-        cat <<EOF >./recipe-app/ingress-patch.yaml
         apiVersion: networking.k8s.io/v1
         kind: Ingress
         metadata:
+          name: gke-ingress
+          namespace: default
           annotations:
+            kubernetes.io/ingress.class: "gce"
+            kubernetes.io/ingress.allow-http: "true"
             kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
+          defaultBackend:
+            service:
+              name: recipe-app
+              port:
+                number: 80
+          rules:
+          - host: "recipes.tscrond.com"
+            http:
+              paths:
+              - path: "/*"
+                pathType: ImplementationSpecific
+                backend:
+                  service:
+                    name: recipe-app
+                    port:
+                      number: 80
         EOF
 
-        cat <<EOF >./recipe-app/kustomization.yaml
-        apiVersion: kustomize.config.k8s.io/v1beta1
-        kind: Kustomization
-        
-        resources:
-        - ingress-controller.yaml
-        
-        patches:
-        - target:
-            kind: Ingress
-            name: gke-ingress
-            namespace: default
-            version: networking.k8s.io/v1
-            group: networking.k8s.io
-          # patch content should be specified inline
-          patch: | 
-            - op: replace
-              path: /metadata/annotations/kubernetes.io~1ingress.global-static-ip-name
-              value: ${{ env.CLUSTER_STATIC_IP }}
-        EOF
-        cd ./recipe-app/
-        kubectl apply -k .
-  # kubectl kustomize edit fix ./recipe-app/kustomization.yaml
 
+  # cat <<EOF >./recipe-app/ingress-patch.yaml
+  # apiVersion: networking.k8s.io/v1
+  # kind: Ingress
+  # metadata:
+  #   annotations:
+  #     kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
+  # EOF
+
+  # cat <<EOF >./recipe-app/kustomization.yaml
   # apiVersion: kustomize.config.k8s.io/v1beta1
   # kind: Kustomization
-
+  
   # resources:
   # - ingress-controller.yaml
-
+  
   # patches:
-  # - path: ./recipe-app/ingress-patch.yaml
-  #   target:
+  # - target:
   #     kind: Ingress
   #     name: gke-ingress
   #     namespace: default
   #     version: networking.k8s.io/v1
   #     group: networking.k8s.io
-  #     patch: |
-  #       - op: replace
-  #         path: /metadata/annotations/kubernetes.io~1ingress.global-static-ip-name
-  #         value: ${{ env.CLUSTER_STATIC_IP }}
+  #   # patch content should be specified inline
+  #   patch: | 
+  #     - op: replace
+  #       path: /metadata/annotations/kubernetes.io~1ingress.global-static-ip-name
+  #       value: ${{ env.CLUSTER_STATIC_IP }}
