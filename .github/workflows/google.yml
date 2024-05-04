@@ -95,8 +95,7 @@ jobs:
         - ingress-controller.yaml
         
         patches:
-        - path: ingress-patch.yaml
-          target:
+        - target:
             kind: Ingress
             name: gke-ingress
             namespace: default
