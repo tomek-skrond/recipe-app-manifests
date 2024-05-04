@@ -79,6 +79,7 @@ jobs:
     - name: "kustomize ingress controller"
       id: 'kustomize-ingress'
       run: |
+        cat <<EOF > ./recipe-app/ingress.yaml
         apiVersion: networking.k8s.io/v1
         kind: Ingress
         metadata:
@@ -105,6 +106,8 @@ jobs:
                     port:
                       number: 80
         EOF
+        kubectl apply -f ./recipe-app/ingress.yaml
+        kubectl apply -f ./recipe-app/app.yaml
 
 
   # cat <<EOF >./recipe-app/ingress-patch.yaml
