@@ -107,4 +107,5 @@ jobs:
                 path: /metadata/annotations/kubernetes.io~1ingress.global-static-ip-name
                 value: ${{ env.CLUSTER_STATIC_IP }}
         EOF
+        kubectl apply -k ./recipe-app/
 
