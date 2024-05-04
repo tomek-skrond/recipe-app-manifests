@@ -91,7 +91,7 @@ jobs:
     - name: 'install externaldns using helm'
       run: |
         if kubectl get secret cloudflare-api-key &> /dev/null; then
-        echo "Namespace cloudflare-api-key already exists."
+          echo "Secret cloudflare-api-key already exists."
         else
           kubectl create secret generic cloudflare-api-key --from-literal=API_KEY=${{ env.CLOUDFLARE_API_TOKEN }} --from-literal=CF_API_EMAIL=${{ env.CLOUDFLARE_API_EMAIL }}
           helm upgrade --install external-dns external-dns/external-dns --values ./externaldns/values.yaml
