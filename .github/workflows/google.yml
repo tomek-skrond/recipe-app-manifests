@@ -59,30 +59,7 @@ jobs:
       id: 'cert-manager'
       run: |
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
-    # - name: "kustomize externaldns"
-    #   id: 'kustomize-externaldns'
-    #   run: |
-    #     cat <<EOF >./externaldns/kustomization.yaml
-    #     resources:
-    #       - values.yaml
-    #     patches:
-    #       - target:
-    #           group: ""
-    #           version: v1
-    #           kind: ConfigMap
-    #           name: externaldns
-    #         patch: |-
-    #           - op: replace
-    #             path: /data/provider
-    #             value: |
-    #               name: cloudflare
-    #               env:
-    #                 - name: CF_API_KEY
-    #                   value: ${{ env.CLOUDFLARE_API_TOKEN }}
-    #                 - name: CF_API_EMAIL
-    #                   value: "tomek2.skrond@gmail.com"
-    #     EOF
-    #     kubectl kustomize ./externaldns/kustomization.yaml > kustomized-values.yaml
+
     - name: 'install helm'
       run: |
         curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
@@ -129,4 +106,5 @@ jobs:
               - op: replace
                 path: /metadata/annotations/kubernetes.io~1ingress.global-static-ip-name
                 value: ${{ env.CLUSTER_STATIC_IP }}
+        EOF
 
