@@ -90,16 +90,14 @@ jobs:
         cat <<EOF >./recipe-app/kustomization.yaml
         apiVersion: kustomize.config.k8s.io/v1beta1
         kind: Kustomization
-        
         resources:
         - ingress-controller.yaml
-        
         patchesStrategicMerge:
         - ingress-patch.yaml
 
         EOF
-        kubectl kustomize edit fix ./recipe-app/kustomization.yaml
-        kubectl apply -k ./recipe-app/
+        kubectl kustomize -k ./recipe-app/
+  # kubectl kustomize edit fix ./recipe-app/kustomization.yaml
 
   # apiVersion: kustomize.config.k8s.io/v1beta1
   # kind: Kustomization
