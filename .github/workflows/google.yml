@@ -89,6 +89,7 @@ jobs:
             kubernetes.io/ingress.class: "gce"
             kubernetes.io/ingress.allow-http: "true"
             kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
+        spec:
           defaultBackend:
             service:
               name: recipe-app
