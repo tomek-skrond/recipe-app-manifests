@@ -22,7 +22,7 @@ kind: Service
 metadata:
   name: recipe-app
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: recipes.tscrond.com
+    external-dns.alpha.kubernetes.io/hostname: tscrond.com
     external-dns.alpha.kubernetes.io/ttl: "120" #optional
 spec:
   selector:
