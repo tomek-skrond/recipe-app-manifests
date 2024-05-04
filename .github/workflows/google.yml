@@ -98,7 +98,7 @@ jobs:
         - ingress-patch.yaml
 
         EOF
-        kubectl kustomize edit fix
+        kubectl kustomize edit fix ./recipe-app/kustomization.yaml
         kubectl apply -k ./recipe-app/
 
   # apiVersion: kustomize.config.k8s.io/v1beta1
