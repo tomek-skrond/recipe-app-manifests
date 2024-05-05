@@ -140,8 +140,8 @@ jobs:
         
         EXTERNAL_IP=$(kubectl get svc recipe-app -n recipe-app | grep 'recipe-app' | awk '{print $4}')
         while [ $SECONDS -lt $timeout ]; do
-            EXTERNAL_IP=$(kubectl get svc recipe-app -n recipe-app | grep 'recipe-app' | awk '{print $4}')
-            if [[ "$EXTERNAL_IP" != "<pending>" || "$EXTERNAL_IP" != "<none>" || "$EXTERNAL_IP" != "" ]]; then
+            EXTERNAL_IP=$(kubectl get svc -n recipe-app | grep 'recipe-app' | awk '{print $4}')
+            if [[ "$EXTERNAL_IP" != "<pending>" && "$EXTERNAL_IP" != "<none>" && "$EXTERNAL_IP" != "" ]]; then
                 echo "EXTERNAL-IP for recipe-app is now: $EXTERNAL_IP"
                 break
             else
