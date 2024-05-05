@@ -69,15 +69,8 @@ jobs:
       run: |
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
         
-    - name: "create cloudflare dns records"
-      id: 'tf-cloudflare'
-      run: |
-        export TF_VAR_service_ip=$(kubectl get svc | grep 'recipe' | awk '{ print $3 }')
-        terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
-        terraform apply -auto-approve -input=false -lock=false
-        
-    - name: "kustomize ingress controller"
-      id: 'kustomize-ingress'
+    - name: "apply ingress controller"
+      id: 'apply-ingress'
       run: |
         cat <<EOF > ./recipe-app/ingress.yaml
         apiVersion: networking.k8s.io/v1
@@ -110,7 +103,12 @@ jobs:
         kubectl apply -f ./recipe-app/ingress.yaml
         kubectl apply -f ./recipe-app/app.yaml
 
-
+    - name: "create cloudflare dns records"
+      id: 'tf-cloudflare'
+      run: |
+        export TF_VAR_service_ip=$(kubectl get svc | grep 'recipe' | awk '{ print $3 }')
+        terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+        terraform apply -auto-approve -input=false -lock=false
 
 # - name: 'install helm'
 #   run: |
