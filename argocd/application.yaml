@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: guestbook
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guestbook
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    targetRevision: HEAD
+    path: guestbook
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: guestbook
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: recipe-app
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: recipe-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/tomek-skrond/recipe-app-manifests.git
+    targetRevision: HEAD
+    path: recipe-app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: recipe-app
