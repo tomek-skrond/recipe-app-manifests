@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recipe-app
+  namespace: recipe-app
+spec:
+  selector:
+    matchLabels:
+      app: recipe-app
+  replicas: 3
+  template:
+    metadata:
+    namespace: recipe-app
+      labels:
+        app: recipe-app
+    spec:
+      containers:
+        - name: recipe-app
+          image: tomekskr/recipe-app
+          ports:
+            - containerPort: 8000
+              name: "http"
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: postgres-pass
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: postgres-user
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: postgres-dbname
+            - name: SSLMODE
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: postgres-sslmode
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: postgres-url
+          # resources:
+          #   limits:
+          #     memory: 5Gi
+          #     # cpu: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: recipe-app
+  name: recipe-app
+spec:
+  selector:
+    app: recipe-app
+  ports:
+  - name: "recipeport"
+    protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: NodePort
