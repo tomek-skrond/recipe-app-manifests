@@ -106,7 +106,24 @@ jobs:
     - name: "create cloudflare dns records"
       id: 'tf-cloudflare'
       run: |
-        export TF_VAR_service_ip=$(kubectl get svc | grep 'recipe' | awk '{ print $3 }')
+        timeout=$((SECONDS+300))  # Set timeout to 5 minutes from current time
+
+        while [ $SECONDS -lt $timeout ]; do
+            EXTERNAL_IP=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            if [ "$EXTERNAL_IP" != "<pending>" ]; then
+                echo "EXTERNAL-IP for recipe-app is now: $EXTERNAL_IP"
+                exit 0
+            else
+                echo "Waiting for EXTERNAL-IP to be assigned for recipe-app..."
+                sleep 10  # Adjust the sleep interval as needed
+            fi
+        done
+        
+        echo "Timeout reached. External IP not obtained within 5 minutes."
+        exit 1
+
+        export TF_VAR_service_ip=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        
         terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
         terraform apply -auto-approve -input=false -lock=false
 
