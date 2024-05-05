@@ -1,4 +1,4 @@
-name: "ArgoCD"
+name: "Cluster Preparation"
 
 on:
   repository_dispatch:
@@ -68,7 +68,31 @@ jobs:
       id: 'cert-manager'
       run: |
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+    - name: "deploy configmap and secret"
+      run: |
+        cat <<EOF > ./recipe-app/configmap.yaml
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: postgres-config
+          namespace: recipe-app
+        data:
+          postgres-url: postgres
+        EOF
         
+        cat <<EOF > ./recipe-app/secret.yaml
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: postgres-secret
+          namespace: recipe-app
+        type: Opaque
+        data:
+          postgres-pass: ${{ secrets.POSTGRES_PASSWORD }}
+          postgres-user: ${{ secrets.POSTGRES_USER }}
+          postgres-dbname: ${{ secrets.POSTGRES_DATABASE }}
+          postgres-sslmode: ${{ secrets.POSTGRES_SSLMODE }}
+        EOF
     - name: "apply ingress controller"
       id: 'apply-ingress'
       run: |
@@ -77,7 +101,7 @@ jobs:
         kind: Ingress
         metadata:
           name: gke-ingress
-          namespace: default
+          namespace: recipe-app
           annotations:
             kubernetes.io/ingress.class: "gce"
             kubernetes.io/ingress.allow-http: "true"
@@ -100,8 +124,12 @@ jobs:
                     port:
                       number: 80
         EOF
+        
+        kubectl apply -f ./recipe-app/configmap.yaml
+        kubectl apply -f ./recipe-app/secret.yaml
+        kubectl apply -f ./recipe-app/postgres/
+        kubectl apply -f ./recipe-app/app/
         kubectl apply -f ./recipe-app/ingress.yaml
-        kubectl apply -f ./recipe-app/app.yaml
         
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
