@@ -103,10 +103,10 @@ jobs:
           name: gke-ingress
           namespace: recipe-app
           annotations:
-            kubernetes.io/ingress.class: "gce"
             kubernetes.io/ingress.allow-http: "true"
-            kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
+            kubernetes.io/ingress.global-static-ip-name: cluster-static-ip
         spec:
+          ingressClassName: "gce"
           defaultBackend:
             service:
               name: recipe-app

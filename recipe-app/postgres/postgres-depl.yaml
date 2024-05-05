@@ -37,7 +37,7 @@ spec:
                   name: postgres-secret
                   key: postgres-dbname
           volumeMounts:
-            - mountPath: /var/lib/postgresql/data
+            - mountPath: /var/lib/data
               name: postgresdb
       volumes:
         - name: postgresdb
