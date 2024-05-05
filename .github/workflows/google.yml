@@ -102,11 +102,15 @@ jobs:
         EOF
         kubectl apply -f ./recipe-app/ingress.yaml
         kubectl apply -f ./recipe-app/app.yaml
-
+        
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
     - name: "create cloudflare dns records"
       id: 'tf-cloudflare'
       run: |
         timeout=$((SECONDS+300))  # Set timeout to 5 minutes from current time
+        
+        EXTERNAL_IP=""
 
         while [ $SECONDS -lt $timeout ]; do
             EXTERNAL_IP=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -118,9 +122,10 @@ jobs:
                 sleep 10  # Adjust the sleep interval as needed
             fi
         done
-        
-        echo "Timeout reached. External IP not obtained within 5 minutes."
-        exit 1
+        if [ "$EXTERNAL_IP" == "<pending>" ]; then
+          echo "Timeout reached. External IP not obtained within 5 minutes."
+          exit 1
+        fi
 
         export TF_VAR_service_ip=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
