@@ -9,15 +9,22 @@ on:
       - master
 
 env:
+    # public vars
     CLUSTER_STATIC_IP: ${{ vars.CLUSTER_STATIC_IP }}
-    CLOUDFLARE_API_EMAIL: "tomek2.skrond@gmail.com"
+    BUCKET_NAME: "cluster-addresses-state-bucket"
+    #CLOUDFLARE_API_EMAIL: "mail"
 
+    # private vars - pipeline
     CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
     CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
     GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
     COMPUTE_SERVICE_ACCOUNT: ${{ secrets.COMPUTE_ENGINE_SERVICE_ACCOUNT }} #Service account to associate to the nodes in the cluster	any	n/a	yes
     CLUSTER_REGION: ${{ secrets.REGION }}
+
+    # terraform vars
+    TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
 
 jobs:
   setup-gke-cluster:
@@ -51,31 +58,24 @@ jobs:
             echo "Namespace argocd created."
         fi
         kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+        
     - name: 'Deploy argocd application manifest'
       id: 'argocd-manifest'
       run: |
         kubectl apply -f argocd/
+        
     - name: "install cert manager"
       id: 'cert-manager'
       run: |
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
-
-    - name: 'install helm'
+        
+    - name: "create cloudflare dns records"
+      id: 'tf-cloudflare'
       run: |
-        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-        chmod 700 get_helm.sh
-        ./get_helm.sh
-    - name: 'install externaldns using helm'
-      run: |
-        if kubectl get secret cloudflare-api-key &> /dev/null; then
-          echo "Secret cloudflare-api-key already exists."
-        else
-          kubectl create secret generic cloudflare-api-key --from-literal=API_KEY=${{ env.CLOUDFLARE_API_TOKEN }} --from-literal=CF_API_EMAIL=${{ env.CLOUDFLARE_API_EMAIL }}
-          helm upgrade --install external-dns external-dns/external-dns --values ./externaldns/values.yaml
-          echo "Secret cloudflare-api-key created."
-        fi
-
-
+        export TF_VAR_service_ip=$(kubectl get svc | grep 'recipe' | awk '{ print $3 }')
+        terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+        terraform apply -auto-approve -input=false -lock=false
+        
     - name: "kustomize ingress controller"
       id: 'kustomize-ingress'
       run: |
@@ -111,30 +111,46 @@ jobs:
         kubectl apply -f ./recipe-app/app.yaml
 
 
-  # cat <<EOF >./recipe-app/ingress-patch.yaml
-  # apiVersion: networking.k8s.io/v1
-  # kind: Ingress
-  # metadata:
-  #   annotations:
-  #     kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
-  # EOF
 
-  # cat <<EOF >./recipe-app/kustomization.yaml
-  # apiVersion: kustomize.config.k8s.io/v1beta1
-  # kind: Kustomization
-  
-  # resources:
-  # - ingress-controller.yaml
-  
-  # patches:
-  # - target:
-  #     kind: Ingress
-  #     name: gke-ingress
-  #     namespace: default
-  #     version: networking.k8s.io/v1
-  #     group: networking.k8s.io
-  #   # patch content should be specified inline
-  #   patch: | 
-  #     - op: replace
-  #       path: /metadata/annotations/kubernetes.io~1ingress.global-static-ip-name
-  #       value: ${{ env.CLUSTER_STATIC_IP }}
+# - name: 'install helm'
+#   run: |
+#     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+#     chmod 700 get_helm.sh
+#     ./get_helm.sh
+# - name: 'install externaldns using helm'
+#   run: |
+#     if kubectl get secret cloudflare-api-key &> /dev/null; then
+#       echo "Secret cloudflare-api-key already exists."
+#     else
+#       kubectl create secret generic cloudflare-api-key --from-literal=API_KEY=${{ env.CLOUDFLARE_API_TOKEN }} --from-literal=CF_API_EMAIL=${{ env.CLOUDFLARE_API_EMAIL }}
+#       helm upgrade --install external-dns external-dns/external-dns --values ./externaldns/values.yaml
+#       echo "Secret cloudflare-api-key created."
+#     fi
+
+# cat <<EOF >./recipe-app/ingress-patch.yaml
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   annotations:
+#     kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
+# EOF
+
+# cat <<EOF >./recipe-app/kustomization.yaml
+# apiVersion: kustomize.config.k8s.io/v1beta1
+# kind: Kustomization
+
+# resources:
+# - ingress-controller.yaml
+
+# patches:
+# - target:
+#     kind: Ingress
+#     name: gke-ingress
+#     namespace: default
+#     version: networking.k8s.io/v1
+#     group: networking.k8s.io
+#   # patch content should be specified inline
+#   patch: | 
+#     - op: replace
+#       path: /metadata/annotations/kubernetes.io~1ingress.global-static-ip-name
+#       value: ${{ env.CLUSTER_STATIC_IP }}
