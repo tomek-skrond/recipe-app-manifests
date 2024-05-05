@@ -10,6 +10,7 @@ spec:
       app: postgres
   template:  # Moved template field to the correct position
     metadata:
+    # namespace: recipe-app
       labels:
         app: postgres
     spec:
