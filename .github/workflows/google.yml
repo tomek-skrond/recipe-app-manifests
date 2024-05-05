@@ -138,8 +138,7 @@ jobs:
       run: |
         timeout=$((SECONDS+300))  # Set timeout to 5 minutes from current time
         
-        EXTERNAL_IP=""
-
+        EXTERNAL_IP=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}' -n recipe-app)
         while [ $SECONDS -lt $timeout ]; do
             EXTERNAL_IP=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}' -n recipe-app)
             if [ "$EXTERNAL_IP" != "<pending>" ]; then
