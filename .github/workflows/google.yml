@@ -112,7 +112,7 @@ jobs:
             EXTERNAL_IP=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
             if [ "$EXTERNAL_IP" != "<pending>" ]; then
                 echo "EXTERNAL-IP for recipe-app is now: $EXTERNAL_IP"
-                exit 0
+                break
             else
                 echo "Waiting for EXTERNAL-IP to be assigned for recipe-app..."
                 sleep 10  # Adjust the sleep interval as needed
@@ -123,7 +123,7 @@ jobs:
         exit 1
 
         export TF_VAR_service_ip=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-        
+
         terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
         terraform apply -auto-approve -input=false -lock=false
 
