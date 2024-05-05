@@ -18,6 +18,6 @@ module "cf" {
 
   cloudflare_zone_id = var.cloudflare_zone_id
   cloudflare_api_token = var.cloudflare_api_token
-  ip_address = var.service_ip
+  service_ip = var.service_ip
 
 }
