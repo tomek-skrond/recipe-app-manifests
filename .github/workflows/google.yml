@@ -11,8 +11,8 @@ on:
 env:
     # public vars
     CLUSTER_STATIC_IP: ${{ vars.CLUSTER_STATIC_IP }}
-    BUCKET_NAME: "cluster-addresses-state-bucket"
-    #CLOUDFLARE_API_EMAIL: "mail"
+    BUCKET_NAME: ${{ vars.BUCKET_NAME }}
+    LETSENCRYPT_EMAIL: ${{ vars.EMAIL }}
 
     # private vars - pipeline
     CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -104,8 +104,13 @@ jobs:
           namespace: recipe-app
           annotations:
             kubernetes.io/ingress.allow-http: "true"
-            kubernetes.io/ingress.global-static-ip-name: cluster-static-ip
+            kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
+            cert-manager.io/issuer: letsencrypt-production
         spec:
+          tls:
+            - secretName: web-ssl
+              hosts:
+                - recipes.tscrond.com
           ingressClassName: "gce"
           defaultBackend:
             service:
@@ -127,8 +132,8 @@ jobs:
         
         kubectl apply -f ./recipe-app/configmap.yaml
         kubectl apply -f ./recipe-app/secret.yaml
-        kubectl apply -f ./recipe-app/postgres/
-        kubectl apply -f ./recipe-app/app/
+        kubectl apply -f ./recipe-app/deployment/postgres/
+        kubectl apply -f ./recipe-app/deployment/app/
         kubectl apply -f ./recipe-app/ingress.yaml
         
     - name: Setup Terraform
@@ -159,6 +164,37 @@ jobs:
         terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
         terraform apply -auto-approve -input=false -lock=false
 
+    - name: 'deploy cert manager'
+      run: |
+        cat <<EOF > ./recipe-app/certmanager-secret.yaml
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: web-ssl
+        type: kubernetes.io/tls
+        stringData:
+          tls.key: ""
+          tls.crt: ""
+        EOF
+
+        cat <<EOF > ./recipe-app/issuer.yaml
+        apiVersion: cert-manager.io/v1
+        kind: Issuer
+        metadata:
+          name: letsencrypt-production
+        spec:
+          acme:
+            server: https://acme-v02.api.letsencrypt.org/directory
+            email: ${{ env.LETSENCRYPT_EMAIL }}
+            privateKeySecretRef:
+              name: letsencrypt-production
+            solvers:
+            - http01:
+                ingress:
+                  name: gke-ingress
+        EOF
+        kubectl apply -f ./recipe-app/certmanager-secret.yaml
+        kubectl apply -f ./recipe-app/issuer.yaml
 # - name: 'install helm'
 #   run: |
 #     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3

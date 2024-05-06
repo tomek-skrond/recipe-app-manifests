@@ -5,4 +5,4 @@ variable "credential_file" {
 variable "project_id" {}
 variable "region" {}
 # variable "zone" {}
-# variable "bucket_name" {}
+variable "bucket_name" {}

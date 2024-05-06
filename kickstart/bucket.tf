@@ -3,7 +3,7 @@ locals {
 }
 
 resource "google_storage_bucket" "gkestate" {
-  name          = local.bucket_name
+  name          = var.bucket_name
   force_destroy = true
   location      = "US"
   storage_class = "STANDARD"
@@ -15,5 +15,5 @@ resource "google_storage_bucket" "gkestate" {
 }
 
 output "bucket_name" {
-  value = local.bucket_name
+  value = var.bucket_name
 }
