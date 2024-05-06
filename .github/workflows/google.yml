@@ -170,6 +170,7 @@ jobs:
         apiVersion: v1
         kind: Secret
         metadata:
+          namespace: recipe-app
           name: web-ssl
         type: kubernetes.io/tls
         stringData:
@@ -181,6 +182,7 @@ jobs:
         apiVersion: cert-manager.io/v1
         kind: Issuer
         metadata:
+          namespace: recipe-app
           name: letsencrypt-production
         spec:
           acme:
