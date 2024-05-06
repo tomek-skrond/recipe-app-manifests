@@ -11,7 +11,7 @@ on:
 env:
     # public vars
     CLUSTER_STATIC_IP: ${{ vars.CLUSTER_STATIC_IP }}
-    BUCKET_NAME: "cluster-addresses-state-bucket"
+    BUCKET_NAME: ${{ vars.BUCKET_NAME }}
     #CLOUDFLARE_API_EMAIL: "mail"
 
     # private vars - pipeline
