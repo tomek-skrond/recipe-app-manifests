@@ -105,6 +105,7 @@ jobs:
           annotations:
             kubernetes.io/ingress.allow-http: "true"
             kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
+            acme.cert-manager.io/http01-edit-in-place: "true"
             cert-manager.io/issuer: letsencrypt-production
         spec:
           tls:
