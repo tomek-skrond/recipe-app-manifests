@@ -147,9 +147,9 @@ jobs:
     - name: "create cloudflare dns records"
       id: 'tf-cloudflare'
       run: |
-        gcloud compute addresses describe ${{ env.CLUSTER_STATIC_IP }} --format='value(address)'
+        gcloud compute addresses describe ${{ env.CLUSTER_STATIC_IP }} --format='value(address)' --global
         
-        export TF_VAR_service_ip=$(gcloud compute addresses ${{ env.CLUSTER_STATIC_IP }} --format='value(address)')
+        export TF_VAR_service_ip=$(gcloud compute addresses ${{ env.CLUSTER_STATIC_IP }} --format='value(address)' --global)
 
         terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
         terraform apply -auto-approve -input=false -lock=false
