@@ -63,11 +63,7 @@ jobs:
       id: 'argocd-manifest'
       run: |
         kubectl apply -f argocd/
-        
-    - name: "install cert manager"
-      id: 'cert-manager'
-      run: |
-        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+
     - name: "Create global static IP in GCP"
       run: |
         if gcloud compute addresses create ${{ env.CLUSTER_STATIC_IP }} --global 2>/dev/null; then
@@ -75,7 +71,19 @@ jobs:
         else
           echo "Address ${{ env.CLUSTER_STATIC_IP }} already exists, skipping creation"
         fi
-    - name: "deploy configmap and secret"
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+    - name: "create cloudflare dns records"
+      id: 'tf-cloudflare'
+      run: |
+        gcloud compute addresses describe ${{ env.CLUSTER_STATIC_IP }} --format='value(address)' --global
+        
+        export TF_VAR_service_ip=$(gcloud compute addresses describe ${{ env.CLUSTER_STATIC_IP }} --format='value(address)' --global)
+
+        terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+        terraform apply -auto-approve -input=false -lock=false
+
+    - name: "create configmap and secret"
       run: |
         cat <<EOF > ./recipe-app/configmap.yaml
         apiVersion: v1
@@ -100,6 +108,7 @@ jobs:
           postgres-dbname: ${{ secrets.POSTGRES_DATABASE }}
           postgres-sslmode: ${{ secrets.POSTGRES_SSLMODE }}
         EOF
+        
     - name: "apply ingress controller"
       id: 'apply-ingress'
       run: |
@@ -141,18 +150,11 @@ jobs:
         kubectl apply -f ./recipe-app/deployment/postgres/
         kubectl apply -f ./recipe-app/deployment/app/
         # kubectl apply -f ./recipe-app/ingress.yaml
-        
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
-    - name: "create cloudflare dns records"
-      id: 'tf-cloudflare'
+  
+    - name: "install cert manager"
+      id: 'cert-manager'
       run: |
-        gcloud compute addresses describe ${{ env.CLUSTER_STATIC_IP }} --format='value(address)' --global
-        
-        export TF_VAR_service_ip=$(gcloud compute addresses describe ${{ env.CLUSTER_STATIC_IP }} --format='value(address)' --global)
-
-        terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
-        terraform apply -auto-approve -input=false -lock=false
+        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
 
     - name: 'deploy cert manager'
       run: |
