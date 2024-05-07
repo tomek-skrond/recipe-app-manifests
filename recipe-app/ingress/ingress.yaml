@@ -3,14 +3,18 @@
   metadata:
     labels:
       app: recipe-app
-    name: gke-ingress
+    name: gke-ingress-4
     namespace: recipe-app
     annotations:
       kubernetes.io/ingress.class: gce
       kubernetes.io/ingress.allow-http: "true"
-      kubernetes.io/ingress.global-static-ip-name: ginger
-      # cert-manager.io/issuer: letsencrypt-production
+      kubernetes.io/ingress.global-static-ip-name: cluster-static-ip
+      cert-manager.io/issuer: letsencrypt-production
   spec:
+    tls:
+      - secretName: web-ssl
+        hosts:
+          - recipes.tscrond.com
     ingressClassName: "gce"
     defaultBackend:
       service:

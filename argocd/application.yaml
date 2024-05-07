@@ -33,7 +33,7 @@ spec:
   source:
     repoURL: https://github.com/tomek-skrond/recipe-app-manifests.git
     targetRevision: HEAD
-    path: recipe-app
+    path: recipe-app/deployment/
   destination:
     server: https://kubernetes.default.svc
     namespace: recipe-app

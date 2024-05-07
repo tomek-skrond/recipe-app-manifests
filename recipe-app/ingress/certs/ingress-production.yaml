@@ -6,10 +6,10 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: doesnotmatter
+    email: tomek2.skrond@gmail.com
     privateKeySecretRef:
       name: letsencrypt-production
     solvers:
     - http01:
         ingress:
-          name: gke-ingress
+          name: gke-ingress-25287

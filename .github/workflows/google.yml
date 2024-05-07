@@ -108,84 +108,46 @@ jobs:
           postgres-dbname: ${{ secrets.POSTGRES_DATABASE }}
           postgres-sslmode: ${{ secrets.POSTGRES_SSLMODE }}
         EOF
-        
-    - name: "apply ingress controller"
-      id: 'apply-ingress'
-      run: |
-        sed -i 's/kubernetes\.io\/ingress\.global-static-ip-name: .*/kubernetes\.io\/ingress\.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}/g' ./recipe-app/ingress/ingress.yaml
-        cat ./recipe-app/ingress/ingress.yaml | grep 'global-static-ip-name'
-        
+
         kubectl apply -f ./recipe-app/configmap.yaml
         kubectl apply -f ./recipe-app/secret.yaml
+    - name: "apply application"
+      run: |
         kubectl apply -f ./recipe-app/deployment/postgres/
         kubectl apply -f ./recipe-app/deployment/app/
-        kubectl apply -f ./recipe-app/ingress/ingress.yaml
-  
+
     - name: "install cert manager"
       id: 'cert-manager'
       run: |
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
 
-    - name: "Create issuer for letsencrypt staging"
+    - name: "set random number env":
+      id: set_random
       run: |
-        sed -i 's/email: .*/email: ${{ env.LETSENCRYPT_EMAIL }}/g' ./recipe-app/ingress/certs/ingress-staging.yaml
+        echo $RANDOM
+        echo "RANDOM_NUMBER=$(echo $RANDOM)" >> "$GITHUB_ENV"
+
+    - name: "apply ingress controller"
+      id: 'apply-ingress'
+      run: |
+        echo $RANDOM_NUMBER
+        if kubectl get ingress -n recipe-app | grep 'gke-ingress' >/dev/null;then echo "Ingress already exists"; exit 0; fi
+
+        sed -i "s/\(^\s*name: \)gke-[[:alnum:]-]*/\1gke-ingress-$RANDOM_NUMBER/" ./recipe-app/ingress/ingress.yaml
+        sed -i 's/kubernetes\.io\/ingress\.global-static-ip-name: .*/kubernetes\.io\/ingress\.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}/g' ./recipe-app/ingress/ingress.yaml
+
+        cat ./recipe-app/ingress/ingress.yaml | grep 'global-static-ip-name'
+
+        kubectl apply -f ./recipe-app/ingress/ingress.yaml
+        kubectl apply -f ./recipe-app/ingress/certs/secret.yaml
+
+
+    - name: "Create issuer for letsencrypt production"
+      run: |
+        if kubectl get issuer -n recipe-app | grep production >/dev/null;then echo "Production SSL already exists"; exit 0; fi
+
+        sed -i "s/\(^\s*name: \)gke-[[:alnum:]-]*/\1gke-ingress-$RANDOM_NUMBER/" ./recipe-app/ingress/certs/ingress-production.yaml
+        sed -i 's/email: .*/email: ${{ env.LETSENCRYPT_EMAIL }}/g' ./recipe-app/ingress/certs/ingress-production.yaml
         cat ./recipe-app/ingress/certs/ingress-staging.yaml
 
-        kubectl apply -f ./recipe-app/ingress/certs/ingress-staging.yaml
-
-    - name: 're-configure ingress for ssl'
-      run: |
-        cat <<EOF > ./recipe-app/certmanager-secret.yaml
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          namespace: recipe-app
-          name: web-ssl
-        type: kubernetes.io/tls
-        stringData:
-          tls.key: ""
-          tls.crt: ""
-        EOF
-
-        cat <<EOF > ./recipe-app/issuer.yaml
-        apiVersion: cert-manager.io/v1
-        kind: Issuer
-        metadata:
-          namespace: recipe-app
-          name: letsencrypt-production
-        spec:
-          acme:
-            server: https://acme-v02.api.letsencrypt.org/directory
-            email: ${{ env.LETSENCRYPT_EMAIL }}
-            privateKeySecretRef:
-              name: letsencrypt-production
-            solvers:
-            - http01:
-                ingress:
-                  name: gke-ingress
-        EOF
-        # kubectl apply -f ./recipe-app/certmanager-secret.yaml
-        # kubectl apply -f ./recipe-app/issuer.yaml
-
-
-
-    # - name: "create cloudflare dns records"
-    #   id: 'tf-cloudflare'
-    #   run: |
-    #     timeout=$((SECONDS+300))  # Set timeout to 5 minutes from current time
-        
-    #     EXTERNAL_IP=$(kubectl get svc recipe-app -n recipe-app | grep 'recipe-app' | awk '{print $4}')
-    #     while [ $SECONDS -lt $timeout ]; do
-    #         EXTERNAL_IP=$(kubectl get svc -n recipe-app | grep 'recipe-app' | awk '{print $4}')
-    #         if [[ "$EXTERNAL_IP" != "<pending>" && "$EXTERNAL_IP" != "<none>" && "$EXTERNAL_IP" != "" ]]; then
-    #             echo "EXTERNAL-IP for recipe-app is now: $EXTERNAL_IP"
-    #             break
-    #         else
-    #             echo "Waiting for EXTERNAL-IP to be assigned for recipe-app..."
-    #             sleep 10  # Adjust the sleep interval as needed
-    #         fi
-    #     done
-    #     if [ "$EXTERNAL_IP" == "<pending>" ]; then
-    #       echo "Timeout reached. External IP not obtained within 5 minutes."
-    #       exit 1
-    #     fi
+        kubectl apply -f ./recipe-app/ingress/certs/ingress-production.yaml

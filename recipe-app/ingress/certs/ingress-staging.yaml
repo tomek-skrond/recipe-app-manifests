@@ -7,10 +7,10 @@ metadata:
 spec:
   acme:
     server: https://acme-staging-v02.api.letsencrypt.org/directory
-    email: doesnotmatter
+    email: tomek2.skrond@gmail.com
     privateKeySecretRef:
       name: letsencrypt-staging
     solvers:
     - http01:
         ingress:
-          name: gke-ingress
+          name: gke-ingress-2
