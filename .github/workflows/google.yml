@@ -105,13 +105,12 @@ jobs:
           annotations:
             kubernetes.io/ingress.allow-http: "true"
             kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
-            acme.cert-manager.io/http01-edit-in-place: "true"
             cert-manager.io/issuer: letsencrypt-production
         spec:
-          tls:
-            - secretName: web-ssl
-              hosts:
-                - recipes.tscrond.com
+          # tls:
+          #   - secretName: web-ssl
+          #     hosts:
+          #       - recipes.tscrond.com
           ingressClassName: "gce"
           defaultBackend:
             service:
@@ -198,45 +197,3 @@ jobs:
         EOF
         kubectl apply -f ./recipe-app/certmanager-secret.yaml
         kubectl apply -f ./recipe-app/issuer.yaml
-# - name: 'install helm'
-#   run: |
-#     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-#     chmod 700 get_helm.sh
-#     ./get_helm.sh
-# - name: 'install externaldns using helm'
-#   run: |
-#     if kubectl get secret cloudflare-api-key &> /dev/null; then
-#       echo "Secret cloudflare-api-key already exists."
-#     else
-#       kubectl create secret generic cloudflare-api-key --from-literal=API_KEY=${{ env.CLOUDFLARE_API_TOKEN }} --from-literal=CF_API_EMAIL=${{ env.CLOUDFLARE_API_EMAIL }}
-#       helm upgrade --install external-dns external-dns/external-dns --values ./externaldns/values.yaml
-#       echo "Secret cloudflare-api-key created."
-#     fi
-
-# cat <<EOF >./recipe-app/ingress-patch.yaml
-# apiVersion: networking.k8s.io/v1
-# kind: Ingress
-# metadata:
-#   annotations:
-#     kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
-# EOF
-
-# cat <<EOF >./recipe-app/kustomization.yaml
-# apiVersion: kustomize.config.k8s.io/v1beta1
-# kind: Kustomization
-
-# resources:
-# - ingress-controller.yaml
-
-# patches:
-# - target:
-#     kind: Ingress
-#     name: gke-ingress
-#     namespace: default
-#     version: networking.k8s.io/v1
-#     group: networking.k8s.io
-#   # patch content should be specified inline
-#   patch: | 
-#     - op: replace
-#       path: /metadata/annotations/kubernetes.io~1ingress.global-static-ip-name
-#       value: ${{ env.CLUSTER_STATIC_IP }}
