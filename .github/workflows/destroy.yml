@@ -45,6 +45,6 @@ jobs:
       - name: "destroy cloudflare dns records"
         id: 'tf-cloudflare'
         run: |
-          export TF_VAR_service_ip=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          export TF_VAR_service_ip=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}') -n recipe-app
           terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
           terraform destroy -auto-approve -input=false -lock=false
