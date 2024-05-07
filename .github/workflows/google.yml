@@ -70,7 +70,11 @@ jobs:
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
     - name: "Create global static IP in GCP"
       run: |
-        gcloud compute addresses create ${{ env.CLUSTER_STATIC_IP }} --global
+        if gcloud compute addresses create ${{ env.CLUSTER_STATIC_IP }} --global 2>/dev/null; then
+          echo "Created compute address ${{ env.CLUSTER_STATIC_IP }}"
+        else
+          echo "Address ${{ env.CLUSTER_STATIC_IP }} already exists, skipping creation"
+        fi
     - name: "deploy configmap and secret"
       run: |
         cat <<EOF > ./recipe-app/configmap.yaml
@@ -145,7 +149,7 @@ jobs:
       run: |
         gcloud compute addresses describe ${{ env.CLUSTER_STATIC_IP }} --format='value(address)'
         
-        export TF_VAR_service_ip=$(gcloud compute addresses describe cluster-static-ip --format='value(address)')
+        export TF_VAR_service_ip=$(gcloud compute addresses ${{ env.CLUSTER_STATIC_IP }} --format='value(address)')
 
         terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
         terraform apply -auto-approve -input=false -lock=false
@@ -181,8 +185,8 @@ jobs:
                 ingress:
                   name: gke-ingress
         EOF
-        kubectl apply -f ./recipe-app/certmanager-secret.yaml
-        kubectl apply -f ./recipe-app/issuer.yaml
+        # kubectl apply -f ./recipe-app/certmanager-secret.yaml
+        # kubectl apply -f ./recipe-app/issuer.yaml
 
 
 
