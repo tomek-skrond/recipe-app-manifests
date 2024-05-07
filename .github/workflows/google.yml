@@ -119,14 +119,21 @@ jobs:
         kubectl apply -f ./recipe-app/secret.yaml
         kubectl apply -f ./recipe-app/deployment/postgres/
         kubectl apply -f ./recipe-app/deployment/app/
-        # kubectl apply -f ./recipe-app/ingress.yaml
+        kubectl apply -f ./recipe-app/ingress.yaml
   
     - name: "install cert manager"
       id: 'cert-manager'
       run: |
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
 
-    - name: 'deploy cert manager'
+    - name: "Create issuer for letsencrypt staging"
+      run: |
+        sed -i 's/email: .*/email: ${{ env.LETSENCRYPT_EMAIL }}/g' ./recipe-app/ingress/certs/ingress-staging.yaml
+        cat ./recipe-app/ingress/certs/ingress-staging.yaml
+
+        kubectl apply -f ./recipe-app/ingress/certs/ingress-staging.yaml
+
+    - name: 're-configure ingress for ssl'
       run: |
         cat <<EOF > ./recipe-app/certmanager-secret.yaml
         apiVersion: v1

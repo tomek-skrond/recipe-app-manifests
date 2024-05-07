@@ -4,5 +4,8 @@ kind: Kustomization
 resources:
   - ingress.yaml
 
-patchesStrategicMerge:
-  - patch.yaml
+patches:
+  - target:
+      kind: Ingress
+      name: gke-ingress
+    patch: patch.yaml
