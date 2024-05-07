@@ -119,7 +119,7 @@ jobs:
         kubectl apply -f ./recipe-app/secret.yaml
         kubectl apply -f ./recipe-app/deployment/postgres/
         kubectl apply -f ./recipe-app/deployment/app/
-        kubectl apply -f ./recipe-app/ingress.yaml
+        kubectl apply -f ./recipe-app/ingress/ingress.yaml
   
     - name: "install cert manager"
       id: 'cert-manager'
