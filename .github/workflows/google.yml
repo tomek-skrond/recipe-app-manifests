@@ -112,38 +112,8 @@ jobs:
     - name: "apply ingress controller"
       id: 'apply-ingress'
       run: |
-        cat <<EOF > ./recipe-app/ingress.yaml
-        apiVersion: networking.k8s.io/v1
-        kind: Ingress
-        metadata:
-          name: gke-ingress
-          namespace: recipe-app
-          annotations:
-            kubernetes.io/ingress.allow-http: "true"
-            kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
-        spec:
-          # tls:
-          #   - secretName: web-ssl
-          #     hosts:
-          #       - recipes.tscrond.com
-          ingressClassName: "gce"
-          defaultBackend:
-            service:
-              name: recipe-app
-              port:
-                number: 80
-          rules:
-          - host: "recipes.tscrond.com"
-            http:
-              paths:
-              - path: "/*"
-                pathType: ImplementationSpecific
-                backend:
-                  service:
-                    name: recipe-app
-                    port:
-                      number: 80
-        EOF
+        sed -i 's/kubernetes\.io\/ingress\.global-static-ip-name: .*/kubernetes\.io\/ingress\.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}/g' ./recipe-app/ingress/ingress.yaml
+        cat ./recipe-app/ingress/ingress.yaml | grep 'global-static-ip-name'
         
         kubectl apply -f ./recipe-app/configmap.yaml
         kubectl apply -f ./recipe-app/secret.yaml
