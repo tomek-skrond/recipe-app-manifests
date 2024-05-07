@@ -144,6 +144,7 @@ jobs:
 
     - name: "Create issuer for letsencrypt production"
       run: |
+        echo $RANDOM_NUMBER
         if kubectl get issuer -n recipe-app | grep production >/dev/null;then echo "Production SSL already exists"; exit 0; fi
 
         sed -i "s/\(^\s*name: \)gke-[[:alnum:]-]*/\1gke-ingress-$RANDOM_NUMBER/" ./recipe-app/ingress/certs/ingress-production.yaml
