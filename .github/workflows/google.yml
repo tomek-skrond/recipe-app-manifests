@@ -68,6 +68,9 @@ jobs:
       id: 'cert-manager'
       run: |
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+    - name: "Create global static IP in GCP"
+      run: |
+        gcloud compute addresses create ${{ env.CLUSTER_STATIC_IP }} --global
     - name: "deploy configmap and secret"
       run: |
         cat <<EOF > ./recipe-app/configmap.yaml
@@ -105,7 +108,6 @@ jobs:
           annotations:
             kubernetes.io/ingress.allow-http: "true"
             kubernetes.io/ingress.global-static-ip-name: ${{ env.CLUSTER_STATIC_IP }}
-            cert-manager.io/issuer: letsencrypt-production
         spec:
           # tls:
           #   - secretName: web-ssl
@@ -141,25 +143,9 @@ jobs:
     - name: "create cloudflare dns records"
       id: 'tf-cloudflare'
       run: |
-        timeout=$((SECONDS+300))  # Set timeout to 5 minutes from current time
+        gcloud compute addresses describe ${{ env.CLUSTER_STATIC_IP }} --format='value(address)'
         
-        EXTERNAL_IP=$(kubectl get svc recipe-app -n recipe-app | grep 'recipe-app' | awk '{print $4}')
-        while [ $SECONDS -lt $timeout ]; do
-            EXTERNAL_IP=$(kubectl get svc -n recipe-app | grep 'recipe-app' | awk '{print $4}')
-            if [[ "$EXTERNAL_IP" != "<pending>" && "$EXTERNAL_IP" != "<none>" && "$EXTERNAL_IP" != "" ]]; then
-                echo "EXTERNAL-IP for recipe-app is now: $EXTERNAL_IP"
-                break
-            else
-                echo "Waiting for EXTERNAL-IP to be assigned for recipe-app..."
-                sleep 10  # Adjust the sleep interval as needed
-            fi
-        done
-        if [ "$EXTERNAL_IP" == "<pending>" ]; then
-          echo "Timeout reached. External IP not obtained within 5 minutes."
-          exit 1
-        fi
-
-        export TF_VAR_service_ip=$(kubectl get svc recipe-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}' -n recipe-app)
+        export TF_VAR_service_ip=$(gcloud compute addresses describe cluster-static-ip --format='value(address)')
 
         terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
         terraform apply -auto-approve -input=false -lock=false
@@ -197,3 +183,26 @@ jobs:
         EOF
         kubectl apply -f ./recipe-app/certmanager-secret.yaml
         kubectl apply -f ./recipe-app/issuer.yaml
+
+
+
+    # - name: "create cloudflare dns records"
+    #   id: 'tf-cloudflare'
+    #   run: |
+    #     timeout=$((SECONDS+300))  # Set timeout to 5 minutes from current time
+        
+    #     EXTERNAL_IP=$(kubectl get svc recipe-app -n recipe-app | grep 'recipe-app' | awk '{print $4}')
+    #     while [ $SECONDS -lt $timeout ]; do
+    #         EXTERNAL_IP=$(kubectl get svc -n recipe-app | grep 'recipe-app' | awk '{print $4}')
+    #         if [[ "$EXTERNAL_IP" != "<pending>" && "$EXTERNAL_IP" != "<none>" && "$EXTERNAL_IP" != "" ]]; then
+    #             echo "EXTERNAL-IP for recipe-app is now: $EXTERNAL_IP"
+    #             break
+    #         else
+    #             echo "Waiting for EXTERNAL-IP to be assigned for recipe-app..."
+    #             sleep 10  # Adjust the sleep interval as needed
+    #         fi
+    #     done
+    #     if [ "$EXTERNAL_IP" == "<pending>" ]; then
+    #       echo "Timeout reached. External IP not obtained within 5 minutes."
+    #       exit 1
+    #     fi
